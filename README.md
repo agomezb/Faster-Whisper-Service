@@ -43,18 +43,67 @@ WHISPER_MODEL_SIZE=tiny
 WHISPER_LANGUAGE=es
 ```
 
-## Running the Service
+## Running for Production/Use
 
-### Option 1: Local Development
+The easiest way to use this service is with the pre-built Docker image from GitHub Container Registry.
 
-Start the server:
+### Using Docker Run
+
+Pull and run the latest image:
+```bash
+# Pull the latest image
+docker pull ghcr.io/agomezb/faster-whisper-service:latest
+
+# Run the container
+docker run -d -p 8000:8000 \
+  -e WHISPER_MODEL_SIZE=tiny \
+  -e WHISPER_LANGUAGE=es \
+  --name fast-whisper \
+  ghcr.io/agomezb/faster-whisper-service:latest
+```
+
+Stop the container:
+```bash
+docker stop fast-whisper && docker rm fast-whisper
+```
+
+### Using Docker Compose
+
+Use the provided compose file for pre-built images:
+```bash
+docker compose -f docker-compose.ghcr.yml up -d
+```
+
+Stop the service:
+```bash
+docker compose -f docker-compose.ghcr.yml down
+```
+
+View logs:
+```bash
+docker compose -f docker-compose.ghcr.yml logs -f
+```
+
+Override environment variables by creating a `.env` file:
+```env
+WHISPER_MODEL_SIZE=base
+WHISPER_LANGUAGE=en
+```
+
+The API will be available at `http://localhost:8000`
+
+## Running for Development
+
+### Option 1: Local Development (Python + uv)
+
+Start the server with hot reload:
 ```bash
 uv run uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-### Option 2: Docker
+### Option 2: Docker Build & Run
 
-Build the Docker image:
+Build the Docker image locally:
 ```bash
 docker build -t fast-whisper:latest .
 ```
@@ -69,7 +118,7 @@ Stop the container:
 docker stop fast-whisper && docker rm fast-whisper
 ```
 
-You can override environment variables:
+Override environment variables:
 ```bash
 docker run -d -p 8000:8000 \
   -e WHISPER_MODEL_SIZE=base \
@@ -78,9 +127,9 @@ docker run -d -p 8000:8000 \
   fast-whisper:latest
 ```
 
-### Option 3: Docker Compose (Recommended)
+### Option 3: Docker Compose (Local Build)
 
-Start the service:
+Start the service (builds locally):
 ```bash
 docker compose up -d
 ```
@@ -95,45 +144,12 @@ View logs:
 docker compose logs -f
 ```
 
-Override environment variables:
+Rebuild after code changes:
 ```bash
-WHISPER_MODEL_SIZE=base WHISPER_LANGUAGE=en docker compose up -d
-```
-
-Or create a `.env` file in the project root:
-```env
-WHISPER_MODEL_SIZE=base
-WHISPER_LANGUAGE=en
-```
-
-Then simply run:
-```bash
-docker compose up -d
+docker compose up -d --build
 ```
 
 The API will be available at `http://localhost:8000`
-
-### Option 4: Use Pre-built Image from GitHub Container Registry
-
-If the project is set up with GitHub Actions, you can pull and run the latest image:
-
-```bash
-# Pull the latest image
-docker pull ghcr.io/agomezb/fast-whisper:latest
-
-# Run the container
-docker run -d -p 8000:8000 \
-  -e WHISPER_MODEL_SIZE=tiny \
-  -e WHISPER_LANGUAGE=es \
-  --name fast-whisper \
-  ghcr.io/agomezb/fast-whisper:latest
-```
-
-Or use the provided example compose file:
-```bash
-# Update docker-compose.ghcr.yml with your GitHub username first
-docker compose -f docker-compose.ghcr.yml up -d
-```
 
 ## API Endpoints
 

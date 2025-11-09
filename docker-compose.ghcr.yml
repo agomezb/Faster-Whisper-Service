@@ -1,7 +1,9 @@
 # Example docker-compose file using pre-built image from GitHub Container Registry
+# Usage: docker compose -f docker-compose.ghcr.yml up -d
+
 services:
   fast-whisper:
-    image: ghcr.io/agomezb/fast-whisper:latest
+    image: ghcr.io/agomezb/faster-whisper-service:latest
     container_name: fast-whisper
     ports:
       - "8000:8000"
