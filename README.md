@@ -13,7 +13,8 @@ A FastAPI-based audio transcription service using faster-whisper.
 ## Prerequisites
 
 - Python 3.9 or higher
-- uv package manager
+- uv package manager (for local development)
+- Docker (for containerized deployment)
 
 ## Installation
 
@@ -112,6 +113,28 @@ docker compose up -d
 
 The API will be available at `http://localhost:8000`
 
+### Option 4: Use Pre-built Image from GitHub Container Registry
+
+If the project is set up with GitHub Actions, you can pull and run the latest image:
+
+```bash
+# Pull the latest image
+docker pull ghcr.io/agomezb/fast-whisper:latest
+
+# Run the container
+docker run -d -p 8000:8000 \
+  -e WHISPER_MODEL_SIZE=tiny \
+  -e WHISPER_LANGUAGE=es \
+  --name fast-whisper \
+  ghcr.io/agomezb/fast-whisper:latest
+```
+
+Or use the provided example compose file:
+```bash
+# Update docker-compose.ghcr.yml with your GitHub username first
+docker compose -f docker-compose.ghcr.yml up -d
+```
+
 ## API Endpoints
 
 ### Health Check
@@ -168,17 +191,38 @@ Once the server is running, visit:
 - Swagger UI: `http://localhost:8000/docs`
 - ReDoc: `http://localhost:8000/redoc`
 
+## CI/CD
+
+This project includes a GitHub Actions workflow that automatically builds and pushes Docker images to GitHub Container Registry on every push to the `main` branch.
+
+### Image Tags
+
+The workflow creates the following tags:
+- `latest` - Always points to the latest main branch build
+- `main-{sha}` - Specific commit SHA for version tracking
+- `main` - Latest main branch build
+
+### Setup
+
+1. The workflow uses `GITHUB_TOKEN` which is automatically provided by GitHub Actions
+2. To make your images public, go to your package settings on GitHub and change the visibility
+3. No additional secrets are required for basic functionality
+
 ## Project Structure
 
 ```
 fast-whisper/
+├── .github/
+│   └── workflows/
+│       └── deploy.yml             # CI/CD pipeline
 ├── src/
 │   ├── __init__.py
 │   ├── main.py                    # FastAPI application
 │   ├── config.py                  # Configuration management
 │   └── transcription_service.py   # Transcription service (single responsibility)
 ├── Dockerfile                     # Docker configuration
-├── docker-compose.yml             # Docker Compose configuration
+├── docker-compose.yml             # Docker Compose configuration (local build)
+├── docker-compose.ghcr.yml        # Docker Compose configuration (pre-built image)
 ├── .dockerignore                  # Docker ignore patterns
 ├── pyproject.toml                 # Project dependencies (uv)
 ├── .gitignore                     # Git ignore patterns
