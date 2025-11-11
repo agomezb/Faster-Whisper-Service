@@ -16,7 +16,7 @@ class Config:
     def validate(cls) -> None:
         """Validate configuration values."""
         valid_sizes = ["tiny", "base", "small", "medium", "large"]
-        if cls.WHISPER_MODEL_SIZE not in valid_sizes:
+        if not any(cls.WHISPER_MODEL_SIZE.startswith(size) for size in valid_sizes):
             raise ValueError(f"Invalid model size. Must be one of: {valid_sizes}")
         
         valid_devices = ["auto", "cpu", "cuda"]

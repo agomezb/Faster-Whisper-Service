@@ -31,7 +31,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - WHISPER_MODEL_SIZE=${WHISPER_MODEL_SIZE:-tiny}
+      - WHISPER_MODEL_SIZE=${WHISPER_MODEL_SIZE:-large-v3}
       - WHISPER_LANGUAGE=${WHISPER_LANGUAGE:-es}
       - WHISPER_DEVICE=${WHISPER_DEVICE:-cuda}
       - WHISPER_COMPUTE_TYPE=${WHISPER_COMPUTE_TYPE:-float16}
