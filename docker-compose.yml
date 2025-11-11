@@ -1,5 +1,7 @@
 services:
+  # CPU version (default)
   fast-whisper:
+    profiles: ["cpu", ""]
     build:
       context: .
       dockerfile: Dockerfile
@@ -9,6 +11,57 @@ services:
     environment:
       - WHISPER_MODEL_SIZE=${WHISPER_MODEL_SIZE:-tiny}
       - WHISPER_LANGUAGE=${WHISPER_LANGUAGE:-es}
+      - WHISPER_DEVICE=${WHISPER_DEVICE:-cpu}
+      - WHISPER_COMPUTE_TYPE=${WHISPER_COMPUTE_TYPE:-int8}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # GPU version (requires NVIDIA Docker runtime)
+  fast-whisper-gpu:
+    profiles: ["gpu"]
+    build:
+      context: .
+      dockerfile: Dockerfile.gpu
+    container_name: fast-whisper-gpu
+    ports:
+      - "8000:8000"
+    environment:
+      - WHISPER_MODEL_SIZE=${WHISPER_MODEL_SIZE:-tiny}
+      - WHISPER_LANGUAGE=${WHISPER_LANGUAGE:-es}
+      - WHISPER_DEVICE=${WHISPER_DEVICE:-cuda}
+      - WHISPER_COMPUTE_TYPE=${WHISPER_COMPUTE_TYPE:-float16}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Pre-built image from GitHub Container Registry
+  fast-whisper-ghcr:
+    profiles: ["ghcr"]
+    image: ghcr.io/agomezb/faster-whisper-service:latest
+    container_name: fast-whisper
+    ports:
+      - "8000:8000"
+    environment:
+      - WHISPER_MODEL_SIZE=${WHISPER_MODEL_SIZE:-tiny}
+      - WHISPER_LANGUAGE=${WHISPER_LANGUAGE:-es}
+      - WHISPER_DEVICE=${WHISPER_DEVICE:-auto}
+      - WHISPER_COMPUTE_TYPE=${WHISPER_COMPUTE_TYPE:-auto}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]

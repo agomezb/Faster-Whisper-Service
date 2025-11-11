@@ -18,7 +18,9 @@ app = FastAPI(
 
 transcription_service = TranscriptionService(
     model_size=Config.WHISPER_MODEL_SIZE,
-    language=Config.WHISPER_LANGUAGE
+    language=Config.WHISPER_LANGUAGE,
+    device=Config.WHISPER_DEVICE,
+    compute_type=Config.WHISPER_COMPUTE_TYPE
 )
 
 
@@ -28,7 +30,9 @@ async def root():
     return {
         "status": "ok",
         "model_size": Config.WHISPER_MODEL_SIZE,
-        "language": Config.WHISPER_LANGUAGE
+        "language": Config.WHISPER_LANGUAGE,
+        "device": transcription_service.device,
+        "compute_type": transcription_service.compute_type
     }
 
 

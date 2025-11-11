@@ -33,19 +33,61 @@ uv sync
 Set environment variables (or use defaults):
 
 ```bash
-export WHISPER_MODEL_SIZE=tiny  # Options: tiny, base, small, medium, large
-export WHISPER_LANGUAGE=es      # Language code (es for Spanish)
+export WHISPER_MODEL_SIZE=tiny       # Options: tiny, base, small, medium, large
+export WHISPER_LANGUAGE=es           # Language code (es for Spanish)
+export WHISPER_DEVICE=auto           # Options: auto, cpu, cuda
+export WHISPER_COMPUTE_TYPE=auto     # Options: auto, int8, float16, float32
 ```
 
 Or create a `.env` file:
-```
+```env
 WHISPER_MODEL_SIZE=tiny
 WHISPER_LANGUAGE=es
+WHISPER_DEVICE=auto           # Auto-detects GPU, falls back to CPU
+WHISPER_COMPUTE_TYPE=auto     # Uses float16 for GPU, int8 for CPU
 ```
+
+### Device Configuration
+
+- **`auto`** (default): Automatically detects GPU availability
+  - Uses CUDA GPU if available
+  - Falls back to CPU if no GPU is detected
+- **`cpu`**: Forces CPU usage
+- **`cuda`**: Forces GPU usage (requires NVIDIA GPU with CUDA support)
+
+### Compute Type
+
+- **`auto`** (default): Automatically selects based on device
+  - GPU: `float16` (faster, good accuracy)
+  - CPU: `int8` (faster on CPU, slight accuracy trade-off)
+- **`float16`**: Best for GPU (requires CUDA)
+- **`int8`**: Best for CPU, faster with minimal accuracy loss
+- **`float32`**: Highest accuracy, slower performance
 
 ## Running for Production/Use
 
 The easiest way to use this service is with the pre-built Docker image from GitHub Container Registry.
+
+### Using Docker Compose (Recommended)
+
+The single `docker-compose.yml` file supports multiple profiles:
+
+```bash
+# Use pre-built image from GitHub Container Registry (fastest to start)
+docker compose --profile ghcr up -d
+
+# Stop the service
+docker compose --profile ghcr down
+
+# View logs
+docker compose --profile ghcr logs -f
+```
+
+Override environment variables by creating a `.env` file:
+```env
+WHISPER_MODEL_SIZE=base
+WHISPER_LANGUAGE=en
+```
 
 ### Using Docker Run
 
@@ -67,29 +109,6 @@ Stop the container:
 docker stop fast-whisper && docker rm fast-whisper
 ```
 
-### Using Docker Compose
-
-Use the provided compose file for pre-built images:
-```bash
-docker compose -f docker-compose.ghcr.yml up -d
-```
-
-Stop the service:
-```bash
-docker compose -f docker-compose.ghcr.yml down
-```
-
-View logs:
-```bash
-docker compose -f docker-compose.ghcr.yml logs -f
-```
-
-Override environment variables by creating a `.env` file:
-```env
-WHISPER_MODEL_SIZE=base
-WHISPER_LANGUAGE=en
-```
-
 The API will be available at `http://localhost:8000`
 
 ## Running for Development
@@ -101,24 +120,34 @@ Start the server with hot reload:
 uv run uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-### Option 2: Docker Build & Run
+### Option 2: Docker Compose (Local Build)
 
-Build the Docker image locally:
+Build and run locally (CPU version - default):
+```bash
+# Build and start (no profile needed for default CPU)
+docker compose up -d
+
+# Or explicitly use CPU profile
+docker compose --profile cpu up -d
+
+# Stop the service
+docker compose down
+
+# View logs
+docker compose logs -f
+
+# Rebuild after code changes
+docker compose up -d --build
+```
+
+### Option 3: Docker Build & Run
+
+Build the Docker image manually:
 ```bash
 docker build -t fast-whisper:latest .
 ```
 
 Run the container:
-```bash
-docker run -d -p 8000:8000 --name fast-whisper fast-whisper:latest
-```
-
-Stop the container:
-```bash
-docker stop fast-whisper && docker rm fast-whisper
-```
-
-Override environment variables:
 ```bash
 docker run -d -p 8000:8000 \
   -e WHISPER_MODEL_SIZE=base \
@@ -127,29 +156,70 @@ docker run -d -p 8000:8000 \
   fast-whisper:latest
 ```
 
-### Option 3: Docker Compose (Local Build)
-
-Start the service (builds locally):
+Stop the container:
 ```bash
-docker compose up -d
-```
-
-Stop the service:
-```bash
-docker compose down
-```
-
-View logs:
-```bash
-docker compose logs -f
-```
-
-Rebuild after code changes:
-```bash
-docker compose up -d --build
+docker stop fast-whisper && docker rm fast-whisper
 ```
 
 The API will be available at `http://localhost:8000`
+
+## Quick Reference: Docker Compose Profiles
+
+The single `docker-compose.yml` file provides three profiles:
+
+| Profile | Command | Use Case |
+|---------|---------|----------|
+| **default/cpu** | `docker compose up -d` | Local build, CPU only (development) |
+| **gpu** | `docker compose --profile gpu up -d` | Local build, GPU acceleration (development) |
+| **ghcr** | `docker compose --profile ghcr up -d` | Pre-built image from registry (production) |
+
+## GPU Support
+
+### Using GPU with Docker Compose (Recommended)
+
+Use the GPU profile for automatic GPU acceleration:
+
+```bash
+# Start service with GPU support
+docker compose --profile gpu up -d
+
+# View logs
+docker compose --profile gpu logs -f
+
+# Stop service
+docker compose --profile gpu down
+```
+
+**Requirements:**
+- NVIDIA GPU with CUDA support
+- [NVIDIA Docker runtime](https://github.com/NVIDIA/nvidia-docker) installed
+- CUDA 12.1+ drivers
+
+### Using GPU with Docker Run
+
+Build and run GPU-enabled container:
+
+```bash
+# Build GPU image
+docker build -f Dockerfile.gpu -t fast-whisper:gpu .
+
+# Run with NVIDIA runtime
+docker run -d -p 8000:8000 \
+  --gpus all \
+  -e WHISPER_DEVICE=cuda \
+  -e WHISPER_COMPUTE_TYPE=float16 \
+  --name fast-whisper-gpu \
+  fast-whisper:gpu
+```
+
+### Check GPU Status
+
+After starting the service, check if GPU is being used:
+```bash
+curl http://localhost:8000/
+```
+
+Look for `"device": "cuda"` in the response.
 
 ## API Endpoints
 
@@ -163,7 +233,9 @@ Response:
 {
   "status": "ok",
   "model_size": "tiny",
-  "language": "es"
+  "language": "es",
+  "device": "cpu",
+  "compute_type": "int8"
 }
 ```
 
@@ -236,9 +308,9 @@ fast-whisper/
 │   ├── main.py                    # FastAPI application
 │   ├── config.py                  # Configuration management
 │   └── transcription_service.py   # Transcription service (single responsibility)
-├── Dockerfile                     # Docker configuration
-├── docker-compose.yml             # Docker Compose configuration (local build)
-├── docker-compose.ghcr.yml        # Docker Compose configuration (pre-built image)
+├── Dockerfile                     # Docker configuration (CPU)
+├── Dockerfile.gpu                 # Docker configuration (GPU/CUDA)
+├── docker-compose.yml             # Docker Compose with profiles (cpu/gpu/ghcr)
 ├── .dockerignore                  # Docker ignore patterns
 ├── pyproject.toml                 # Project dependencies (uv)
 ├── .gitignore                     # Git ignore patterns
