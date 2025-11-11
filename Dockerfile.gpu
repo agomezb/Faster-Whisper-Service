@@ -1,8 +1,12 @@
 # Dockerfile for GPU support
 # Requires NVIDIA Docker runtime
 
-# Use NVIDIA CUDA base image
-FROM nvidia/cuda:12.1.0-cudnn8-runtime-ubuntu22.04
+# Use NVIDIA CUDA base image with cuDNN 9
+FROM nvcr.io/nvidia/cuda:12.3.2-cudnn9-runtime-ubuntu22.04
+
+# Add labels for metadata
+LABEL maintainer="Your Name"
+LABEL description="Faster Whisper service with GPU support"
 
 # Install Python and system dependencies
 RUN apt-get update && apt-get install -y \
